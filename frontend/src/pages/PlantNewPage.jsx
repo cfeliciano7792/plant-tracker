@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPlant } from "../api/plants";
+import PlantSearchAutocomplete from "../components/PlantSearchAutocomplete";
 
-const emptyForm = {
+const emptyManualForm = {
   common_name: "",
   scientific_name: "",
   family: "",
@@ -19,7 +20,12 @@ const emptyForm = {
 export default function PlantNewPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState(emptyForm);
+
+  // mode: "search" | "confirm" | "manual"
+  const [mode, setMode] = useState("search");
+  const [chosenSpecies, setChosenSpecies] = useState(null); // { existing: bool, data }
+  const [notes, setNotes] = useState({ personal_notes: "", acquired_date: "" });
+  const [manualForm, setManualForm] = useState(emptyManualForm);
 
   const mutation = useMutation({
     mutationFn: (payload) => createPlant(payload),
@@ -29,11 +35,31 @@ export default function PlantNewPage() {
     },
   });
 
-  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const selectExisting = (species) => {
+    setChosenSpecies({ existing: true, data: species });
+    setMode("confirm");
+  };
 
-  const handleSubmit = (e) => {
+  const selectCandidate = (candidate) => {
+    setChosenSpecies({ existing: false, data: candidate });
+    setMode("confirm");
+  };
+
+  const submitConfirm = (e) => {
     e.preventDefault();
-    const { personal_notes, acquired_date, ...speciesFields } = form;
+    const payload = chosenSpecies.existing
+      ? { species_id: chosenSpecies.data.id }
+      : { new_species: chosenSpecies.data };
+    mutation.mutate({
+      ...payload,
+      personal_notes: notes.personal_notes || null,
+      acquired_date: notes.acquired_date || null,
+    });
+  };
+
+  const submitManual = (e) => {
+    e.preventDefault();
+    const { personal_notes, acquired_date, ...speciesFields } = manualForm;
     mutation.mutate({
       new_species: { ...speciesFields, data_source: "manual" },
       personal_notes: personal_notes || null,
@@ -41,68 +67,134 @@ export default function PlantNewPage() {
     });
   };
 
+  const updateManual = (field) => (e) => setManualForm({ ...manualForm, [field]: e.target.value });
+
   return (
     <div className="plant-new-page">
       <h1>Add a plant</h1>
-      <p className="hint">
-        Manual entry for now — searching a plant database to autofill this form is coming soon.
-      </p>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Common name*
-          <input type="text" value={form.common_name} onChange={update("common_name")} required />
-        </label>
-        <label>
-          Scientific name
-          <input type="text" value={form.scientific_name} onChange={update("scientific_name")} />
-        </label>
-        <label>
-          Family
-          <input type="text" value={form.family} onChange={update("family")} />
-        </label>
-        <label>
-          Genus
-          <input type="text" value={form.genus} onChange={update("genus")} />
-        </label>
-        <label>
-          Watering needs
-          <input
-            type="text"
-            placeholder="e.g. Weekly"
-            value={form.watering_frequency}
-            onChange={update("watering_frequency")}
-          />
-        </label>
-        <label>
-          Light needs
-          <input
-            type="text"
-            placeholder="e.g. Indirect light"
-            value={form.sunlight}
-            onChange={update("sunlight")}
-          />
-        </label>
-        <label>
-          Origin region
-          <input type="text" value={form.origin_region} onChange={update("origin_region")} />
-        </label>
-        <label>
-          Origin country
-          <input type="text" value={form.origin_country} onChange={update("origin_country")} />
-        </label>
-        <label>
-          Acquired on
-          <input type="date" value={form.acquired_date} onChange={update("acquired_date")} />
-        </label>
-        <label>
-          Personal notes
-          <textarea value={form.personal_notes} onChange={update("personal_notes")} rows={4} />
-        </label>
-        {mutation.isError && <p className="error">{mutation.error.message}</p>}
-        <button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Adding..." : "Add plant"}
-        </button>
-      </form>
+
+      {mode === "search" && (
+        <PlantSearchAutocomplete
+          onSelectExisting={selectExisting}
+          onSelectCandidate={selectCandidate}
+          onManual={() => setMode("manual")}
+        />
+      )}
+
+      {mode === "confirm" && chosenSpecies && (
+        <form onSubmit={submitConfirm}>
+          <div className="species-preview">
+            <h2>{chosenSpecies.data.common_name}</h2>
+            {chosenSpecies.data.scientific_name && <p className="scientific-name">{chosenSpecies.data.scientific_name}</p>}
+            <dl>
+              {chosenSpecies.data.family && (
+                <>
+                  <dt>Family</dt>
+                  <dd>{chosenSpecies.data.family}</dd>
+                </>
+              )}
+              {chosenSpecies.data.watering_frequency && (
+                <>
+                  <dt>Water</dt>
+                  <dd>{chosenSpecies.data.watering_frequency}</dd>
+                </>
+              )}
+              {chosenSpecies.data.sunlight && (
+                <>
+                  <dt>Light</dt>
+                  <dd>{chosenSpecies.data.sunlight}</dd>
+                </>
+              )}
+              {chosenSpecies.data.origin_country && (
+                <>
+                  <dt>Origin</dt>
+                  <dd>{chosenSpecies.data.origin_country}</dd>
+                </>
+              )}
+            </dl>
+          </div>
+          <label>
+            Acquired on
+            <input
+              type="date"
+              value={notes.acquired_date}
+              onChange={(e) => setNotes({ ...notes, acquired_date: e.target.value })}
+            />
+          </label>
+          <label>
+            Personal notes
+            <textarea
+              rows={4}
+              value={notes.personal_notes}
+              onChange={(e) => setNotes({ ...notes, personal_notes: e.target.value })}
+            />
+          </label>
+          {mutation.isError && <p className="error">{mutation.error.message}</p>}
+          <div className="actions">
+            <button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Adding..." : "Add plant"}
+            </button>
+            <button type="button" onClick={() => setMode("search")}>
+              Back
+            </button>
+          </div>
+        </form>
+      )}
+
+      {mode === "manual" && (
+        <form onSubmit={submitManual}>
+          <p className="hint">Manual entry — nothing found in Perenual or GBIF for this plant.</p>
+          <label>
+            Common name*
+            <input type="text" value={manualForm.common_name} onChange={updateManual("common_name")} required />
+          </label>
+          <label>
+            Scientific name
+            <input type="text" value={manualForm.scientific_name} onChange={updateManual("scientific_name")} />
+          </label>
+          <label>
+            Family
+            <input type="text" value={manualForm.family} onChange={updateManual("family")} />
+          </label>
+          <label>
+            Genus
+            <input type="text" value={manualForm.genus} onChange={updateManual("genus")} />
+          </label>
+          <label>
+            Watering needs
+            <input type="text" placeholder="e.g. Weekly" value={manualForm.watering_frequency} onChange={updateManual("watering_frequency")} />
+          </label>
+          <label>
+            Light needs
+            <input type="text" placeholder="e.g. Indirect light" value={manualForm.sunlight} onChange={updateManual("sunlight")} />
+          </label>
+          <label>
+            Origin region
+            <input type="text" value={manualForm.origin_region} onChange={updateManual("origin_region")} />
+          </label>
+          <label>
+            Origin country
+            <input type="text" value={manualForm.origin_country} onChange={updateManual("origin_country")} />
+          </label>
+          <label>
+            Acquired on
+            <input type="date" value={manualForm.acquired_date} onChange={updateManual("acquired_date")} />
+          </label>
+          <label>
+            Personal notes
+            <textarea rows={4} value={manualForm.personal_notes} onChange={updateManual("personal_notes")} />
+          </label>
+          {mutation.isError && <p className="error">{mutation.error.message}</p>}
+          <div className="actions">
+            <button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Adding..." : "Add plant"}
+            </button>
+            <button type="button" onClick={() => setMode("search")}>
+              Back to search
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
