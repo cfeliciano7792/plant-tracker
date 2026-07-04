@@ -52,6 +52,28 @@ psql -U plant_tracker -h localhost -d plant_tracker_dev
 
 ## Deployment
 
-Production database is a free Neon Postgres project; the app itself runs as a single
-Render web service that serves both the API and the built frontend. See the Deployment
-section of the project plan for exact steps and required environment variables.
+Production database is a free [Neon](https://neon.tech) Postgres project (persistent,
+no expiry); the app itself runs as a single [Render](https://render.com) free web
+service that serves both the API and the built frontend from one process.
+
+1. **Neon:** create a free project + database. Copy the connection string it gives you
+   (looks like `postgresql://user:pass@host/dbname?sslmode=require`) — the app
+   normalizes this automatically (see `app/database.py`), no edits needed.
+2. Run migrations against it once, locally, pointed at the Neon URL:
+   ```
+   cd backend
+   $env:DATABASE_URL = "<neon connection string>"   # PowerShell
+   .\venv\Scripts\python.exe -m alembic upgrade head
+   ```
+3. **Render:** create a new **Blueprint** from this repo (it will pick up
+   `render.yaml` at the repo root) — or a manual Web Service with:
+   - Build command: `pip install -r backend/requirements.txt && cd frontend && npm install && npm run build`
+   - Start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Set these environment variables in the Render dashboard:
+   - `DATABASE_URL` — the same Neon connection string from step 1
+   - `PERENUAL_API_KEY` — your free key from perenual.com
+   - `SESSION_SECRET` — Render can auto-generate this (see `render.yaml`)
+   - `FAMILY_INVITE_CODE` — the code family members will use to register
+   - `ENVIRONMENT=production`
+5. Deploy, then register a real account through the live URL using the invite code and
+   confirm a plant round-trips end-to-end.

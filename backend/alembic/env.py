@@ -8,13 +8,14 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.config import settings
-from app.database import Base
+from app.database import Base, normalize_database_url
 from app.models import Plant, PlantPhoto, PlantSpecies, Session, User  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+_normalized_url, _connect_args = normalize_database_url(settings.database_url)
+config.set_main_option("sqlalchemy.url", _normalized_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -70,6 +71,7 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=_connect_args,
     )
 
     async with connectable.connect() as connection:
