@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth, photos, plant_search, plants
+from app.routers import auth, photos, plant_search, plants, stats
 
 app = FastAPI(title="Plant Tracker API")
 
@@ -21,6 +21,7 @@ app.include_router(auth.router)
 app.include_router(plants.router)
 app.include_router(plant_search.router)
 app.include_router(photos.router)
+app.include_router(stats.router)
 app.include_router(plants.router)
 
 

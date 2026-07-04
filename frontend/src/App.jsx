@@ -6,13 +6,17 @@ import RegisterPage from "./pages/RegisterPage";
 import PlantListPage from "./pages/PlantListPage";
 import PlantNewPage from "./pages/PlantNewPage";
 import PlantDetailPage from "./pages/PlantDetailPage";
+import StatsPage from "./pages/StatsPage";
 
 function NavBar() {
   const { user, logout } = useAuth();
   if (!user) return null;
   return (
     <nav className="navbar">
-      <Link to="/plants">Plant Tracker</Link>
+      <div className="navbar-left">
+        <Link to="/plants">Plant Tracker</Link>
+        <Link to="/stats">Stats</Link>
+      </div>
       <div className="navbar-right">
         <span>{user.display_name || user.email}</span>
         <button onClick={logout}>Log out</button>
@@ -33,6 +37,7 @@ export default function App() {
             <Route path="/plants" element={<PlantListPage />} />
             <Route path="/plants/new" element={<PlantNewPage />} />
             <Route path="/plants/:id" element={<PlantDetailPage />} />
+            <Route path="/stats" element={<StatsPage />} />
           </Route>
           <Route path="/" element={<Navigate to="/plants" replace />} />
         </Routes>

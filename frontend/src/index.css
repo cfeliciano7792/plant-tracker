@@ -44,6 +44,17 @@ a {
   color: var(--text);
 }
 
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.navbar-left a:last-child {
+  font-weight: 400;
+  color: #6b6560;
+}
+
 .navbar-right {
   display: flex;
   align-items: center;
@@ -259,4 +270,40 @@ dd {
 .photo-uploader input[type="file"] {
   border: none;
   padding: 0;
+}
+
+.total-count {
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.stats-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stats-group {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.stats-group ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-group li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stats-group .count {
+  font-weight: 600;
+  color: var(--accent);
 }
