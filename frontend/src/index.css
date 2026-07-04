@@ -230,3 +230,33 @@ dd {
   display: flex;
   gap: 8px;
 }
+
+.photos {
+  margin: 24px 0;
+}
+
+.photo-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.photo-thumb {
+  width: 140px;
+}
+
+.photo-thumb img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.photo-uploader input[type="file"] {
+  border: none;
+  padding: 0;
+}

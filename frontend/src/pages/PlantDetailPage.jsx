@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deletePlant, getPlant, updatePlant } from "../api/plants";
+import PhotoGallery from "../components/PhotoGallery";
+import PhotoUploader from "../components/PhotoUploader";
 
 export default function PlantDetailPage() {
   const { id } = useParams();
@@ -108,6 +110,12 @@ export default function PlantDetailPage() {
             <button onClick={startEditing}>Edit notes</button>
           </>
         )}
+      </section>
+
+      <section className="photos">
+        <h2>Photos</h2>
+        <PhotoGallery plantId={id} />
+        <PhotoUploader plantId={id} />
       </section>
 
       <button
