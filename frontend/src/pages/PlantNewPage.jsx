@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPlant } from "../api/plants";
+import { getSpecies } from "../api/plantSearch";
 import PlantSearchAutocomplete from "../components/PlantSearchAutocomplete";
+import SpeciesInfo from "../components/SpeciesInfo";
 
 const emptyManualForm = {
   common_name: "",
@@ -24,8 +26,10 @@ export default function PlantNewPage() {
   // mode: "search" | "confirm" | "manual"
   const [mode, setMode] = useState("search");
   const [chosenSpecies, setChosenSpecies] = useState(null); // { existing: bool, data }
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [notes, setNotes] = useState({ personal_notes: "", acquired_date: "" });
   const [manualForm, setManualForm] = useState(emptyManualForm);
+  const [selectError, setSelectError] = useState(null);
 
   const mutation = useMutation({
     mutationFn: (payload) => createPlant(payload),
@@ -35,9 +39,20 @@ export default function PlantNewPage() {
     },
   });
 
-  const selectExisting = (species) => {
-    setChosenSpecies({ existing: true, data: species });
-    setMode("confirm");
+  const selectExisting = async (species) => {
+    setSelectError(null);
+    setLoadingDetails(true);
+    try {
+      // Triggers the one-time Perenual details backfill server-side, if this
+      // species hasn't been fully looked up by any family member yet.
+      const fullSpecies = await getSpecies(species.id);
+      setChosenSpecies({ existing: true, data: fullSpecies });
+      setMode("confirm");
+    } catch (err) {
+      setSelectError(err.message);
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   const selectCandidate = (candidate) => {
@@ -74,11 +89,15 @@ export default function PlantNewPage() {
       <h1>Add a plant</h1>
 
       {mode === "search" && (
-        <PlantSearchAutocomplete
-          onSelectExisting={selectExisting}
-          onSelectCandidate={selectCandidate}
-          onManual={() => setMode("manual")}
-        />
+        <>
+          <PlantSearchAutocomplete
+            onSelectExisting={selectExisting}
+            onSelectCandidate={selectCandidate}
+            onManual={() => setMode("manual")}
+          />
+          {loadingDetails && <p className="hint">Loading plant details...</p>}
+          {selectError && <p className="error">{selectError}</p>}
+        </>
       )}
 
       {mode === "confirm" && chosenSpecies && (
@@ -112,6 +131,7 @@ export default function PlantNewPage() {
                 </>
               )}
             </dl>
+            <SpeciesInfo species={chosenSpecies.data} />
           </div>
           <label>
             Acquired on
@@ -143,7 +163,7 @@ export default function PlantNewPage() {
 
       {mode === "manual" && (
         <form onSubmit={submitManual}>
-          <p className="hint">Manual entry — nothing found in Perenual or GBIF for this plant.</p>
+          <p className="hint">Manual entry — nothing found in Perenual, Trefle, or GBIF for this plant.</p>
           <label>
             Common name*
             <input type="text" value={manualForm.common_name} onChange={updateManual("common_name")} required />

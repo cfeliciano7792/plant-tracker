@@ -12,6 +12,8 @@ services:
         sync: false
       - key: PERENUAL_API_KEY
         sync: false
+      - key: TREFLE_API_KEY
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: FAMILY_INVITE_CODE

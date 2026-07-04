@@ -10,7 +10,7 @@ native origin, personal notes, and photos.
 - **Frontend:** React (Vite, React Router, React Query) — `frontend/`
 - **Database:** PostgreSQL — local dev via a natively installed server, production on [Neon](https://neon.tech) (free, persistent)
 - **Hosting:** [Render](https://render.com) (free web service, serves both API and built frontend)
-- **Plant data:** [Perenual](https://perenual.com) API (primary) with [GBIF](https://www.gbif.org) as a free fallback; species data is cached locally after first lookup so repeat lookups never hit the API again
+- **Plant data:** [Perenual](https://perenual.com)'s free-tier catalog (~3,000 species) is bulk-indexed locally once for instant, zero-cost search; anything not in it (e.g. most orchids) falls back live to [Trefle](https://trefle.io) (best species-level naming) then [GBIF](https://www.gbif.org) (free, unlimited). Rich care/safety details are fetched from Perenual once per species, lazily, only when a family member actually views/adds it — never during search.
 
 See `docs/plan.md` (or ask in the repo) for the full architecture/schema writeup.
 
@@ -28,12 +28,24 @@ cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-copy .env.example .env         # then fill in DATABASE_URL, PERENUAL_API_KEY, SESSION_SECRET, FAMILY_INVITE_CODE
+copy .env.example .env         # then fill in DATABASE_URL, PERENUAL_API_KEY, TREFLE_API_KEY, SESSION_SECRET, FAMILY_INVITE_CODE
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
 API docs available at `http://localhost:8000/docs` once running.
+
+### One-time: index Perenual's free catalog
+
+Search only works locally once this has run — it spends roughly one API request per
+page (~100 requests for the default 100-page/3,000-species free tier, i.e. your whole
+day's Perenual quota in one sitting). Safe to interrupt and re-run; already-indexed
+pages are skipped for free.
+
+```
+cd backend
+.\venv\Scripts\python.exe -m app.scripts.sync_perenual_catalog
+```
 
 ### Frontend
 
@@ -72,8 +84,12 @@ service that serves both the API and the built frontend from one process.
 4. Set these environment variables in the Render dashboard:
    - `DATABASE_URL` — the same Neon connection string from step 1
    - `PERENUAL_API_KEY` — your free key from perenual.com
+   - `TREFLE_API_KEY` — your free token from trefle.io
    - `SESSION_SECRET` — Render can auto-generate this (see `render.yaml`)
    - `FAMILY_INVITE_CODE` — the code family members will use to register
    - `ENVIRONMENT=production`
-5. Deploy, then register a real account through the live URL using the invite code and
-   confirm a plant round-trips end-to-end.
+5. Deploy, then run `python -m app.scripts.sync_perenual_catalog` once against the
+   production `DATABASE_URL` (same one-time step as local dev) so search has data to
+   work with from day one.
+6. Register a real account through the live URL using the invite code and confirm a
+   plant round-trips end-to-end.

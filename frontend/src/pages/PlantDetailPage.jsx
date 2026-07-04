@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deletePlant, getPlant, updatePlant } from "../api/plants";
 import PhotoGallery from "../components/PhotoGallery";
 import PhotoUploader from "../components/PhotoUploader";
+import SpeciesInfo from "../components/SpeciesInfo";
 
 export default function PlantDetailPage() {
   const { id } = useParams();
@@ -87,6 +88,8 @@ export default function PlantDetailPage() {
           </>
         )}
       </dl>
+
+      <SpeciesInfo species={species} />
 
       <section className="personal-notes">
         <h2>Personal notes</h2>

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.plant_species import PlantSpecies
 from app.schemas.plant import NewSpeciesInput
+from app.services.plant_providers.perenual import PerenualProvider
 
 
 async def get_or_create_species(db: AsyncSession, data: NewSpeciesInput) -> PlantSpecies:
@@ -24,5 +25,27 @@ async def get_or_create_species(db: AsyncSession, data: NewSpeciesInput) -> Plan
 
     species = PlantSpecies(**data.model_dump())
     db.add(species)
+    await db.flush()
+    return species
+
+
+async def ensure_details_fetched(db: AsyncSession, species: PlantSpecies) -> PlantSpecies:
+    """Lazy, one-time backfill: bulk-indexed Perenual rows only have list-level
+    fields (name/taxonomy/image) until a family member actually looks at or
+    adds them, at which point we spend exactly one species/details call to
+    fill in the rich care/safety fields and never touch the API for this
+    species again. No-op for manual/trefle/gbif rows or already-fetched ones.
+    Left as details_fetched=False on failure so a later view can retry.
+    """
+    if species.data_source != "perenual" or species.details_fetched:
+        return species
+
+    details = await PerenualProvider().get_details(species.external_id)
+    if details is None:
+        return species
+
+    for field, value in PerenualProvider.details_to_fields(details).items():
+        setattr(species, field, value)
+    species.details_fetched = True
     await db.flush()
     return species

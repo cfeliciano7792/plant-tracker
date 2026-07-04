@@ -1,17 +1,18 @@
 from app.services.plant_providers.base import PlantCandidate
 from app.services.plant_providers.gbif import GBIFProvider
-from app.services.plant_providers.perenual import PerenualProvider
+from app.services.plant_providers.trefle import TrefleProvider
 
 
 class PlantSearchService:
-    """Tries Perenual first (richer data: care info + images), falls back to
-    GBIF only if Perenual returns nothing. Only ever invoked from the explicit
-    /search-external endpoint — never from the local-cache search — so the
-    Perenual free-tier quota (100/day) is spent only when a family member
-    deliberately looks a new species up."""
+    """External fallback search, only reached when the local Perenual-backed
+    index (GET /api/plant-species/search) has no match. Tries Trefle first
+    (best species-level naming, e.g. finds real orchid species Perenual only
+    lists as a generic genus placeholder), falls back to GBIF if Trefle has
+    nothing. Both are free, so both can auto-trigger live in the UI without
+    the quota concerns that apply to Perenual."""
 
     def __init__(self) -> None:
-        self._providers = [PerenualProvider(), GBIFProvider()]
+        self._providers = [TrefleProvider(), GBIFProvider()]
 
     async def search(self, query: str) -> list[PlantCandidate]:
         for provider in self._providers:

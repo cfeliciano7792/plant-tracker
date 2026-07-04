@@ -5,3 +5,5 @@ export const searchLocalSpecies = (q) =>
 
 export const searchExternalSpecies = (q) =>
   apiFetch(`/api/plant-species/search-external?q=${encodeURIComponent(q)}`, { method: "POST" });
+
+export const getSpecies = (id) => apiFetch(`/api/plant-species/${id}`);
