@@ -337,6 +337,17 @@ dd {
   line-height: 1.6;
 }
 
+.approximated-notice {
+  font-size: 13px;
+  font-style: italic;
+  color: #8a6d3b;
+  background: #fcf8e3;
+  border: 1px solid #faebcc;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+}
+
 .also-known-as {
   font-size: 14px;
   color: #6b6560;

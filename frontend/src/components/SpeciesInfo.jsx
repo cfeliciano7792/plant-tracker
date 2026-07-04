@@ -26,6 +26,11 @@ export default function SpeciesInfo({ species }) {
 
   return (
     <div className="species-info-rich">
+      {species.data_source === "iospe_genus" && (
+        <p className="approximated-notice">
+          Care info approximated from typical {species.genus} species — your specific plant may vary.
+        </p>
+      )}
       {species.description && <p className="species-description">{species.description}</p>}
       {species.other_name && (
         <p className="also-known-as">

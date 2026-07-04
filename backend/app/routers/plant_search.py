@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.plant import SpeciesOut
 from app.services.plant_providers.base import PlantCandidate
 from app.services.plant_providers.search import PlantSearchService
-from app.services.species_service import ensure_details_fetched
+from app.services.species_service import ensure_details_fetched, search_iospe_with_fallback
 
 router = APIRouter(prefix="/api/plant-species", tags=["plant-search"])
 _search_service = PlantSearchService()
@@ -57,10 +57,21 @@ async def get_species(
 async def search_external(
     q: str,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Explicitly-triggered Perenual -> GBIF lookup. Results are NOT cached
-    yet — caching happens only when the user picks one and POSTs it to
-    /api/plants, via species_service.get_or_create_species."""
+    """Auto-triggered after a typing pause when local search has nothing.
+    Tries IOSPE first (exact orchid species match, or a genus-approximated
+    fallback for hybrids — the only source with real orchid care content),
+    then Trefle -> GBIF for anything else. Results are NOT cached into
+    plant_species yet (except genus_care_cache, an internal-only cache) —
+    caching the actual plant happens only when the user picks one and POSTs
+    it to /api/plants, via species_service.get_or_create_species."""
     if not q or len(q) < 2:
         return []
+
+    iospe_result = await search_iospe_with_fallback(db, q)
+    if iospe_result is not None:
+        await db.commit()
+        return [iospe_result]
+
     return await _search_service.search(q)
