@@ -1,10 +1,11 @@
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, ForeignKey, Index, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.plant_species import PlantSpecies
 
 
 class Plant(Base):
@@ -26,3 +27,5 @@ class Plant(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    species: Mapped[PlantSpecies] = relationship(lazy="joined")

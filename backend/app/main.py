@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth
+from app.routers import auth, plants
 
 app = FastAPI(title="Plant Tracker API")
 
@@ -18,6 +18,8 @@ if not settings.is_production:
     )
 
 app.include_router(auth.router)
+app.include_router(plants.router)
+app.include_router(plants.router)
 
 
 @app.get("/api/health")
